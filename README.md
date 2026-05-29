@@ -12,6 +12,7 @@
 
 ## Overview
 
+
 QueryCraft is a production-grade visual query builder that lets users construct complex, nested database queries through an intuitive graphical interface — no raw SQL, MongoDB, or GraphQL syntax required.
 
 Built for the challenge of recursive UI engineering, complex state management, and schema-driven rendering.
@@ -157,4 +158,4 @@ src/
 
 ## Contributing
 
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for branch naming, commit conventions, and PR workflow.
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for branch naming, commit conventions, and PR workflows .
