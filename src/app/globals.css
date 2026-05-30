@@ -1,135 +1,172 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300;1,9..40,400&display=swap');
 @import "tailwindcss";
 
-/* ─────────────────────────────────────────────
-   QueryCraft Design System — CSS Custom Properties
-   These variables power our entire light/dark theme.
-   Tailwind reads these; components reference them.
-───────────────────────────────────────────── */
 :root {
-  /* Backgrounds */
-  --bg-base: #ffffff;
-  --bg-secondary: #f8fafc;
-  --bg-tertiary: #f1f5f9;
+  --bg-base:        #080c14;
+  --bg-secondary:   #0d1320;
+  --bg-tertiary:    #111827;
+  --bg-elevated:    #161f2e;
 
-  /* Borders */
-  --border: #e2e8f0;
-  --border-strong: #cbd5e1;
+  --border:         #1e2d40;
+  --border-strong:  #2a3f58;
+  --border-subtle:  #141e2d;
 
-  /* Text */
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-primary:   #e8f0fe;
+  --text-secondary: #7a92b2;
+  --text-muted:     #3d5068;
+  --text-code:      #a8c8f0;
 
-  /* Brand */
-  --brand: #6366f1;
-  --brand-hover: #4f46e5;
+  --brand:          #06b6d4;
+  --brand-dim:      #0891b2;
+  --brand-glow:     rgba(6, 182, 212, 0.15);
+  --brand-subtle:   rgba(6, 182, 212, 0.08);
 
-  /* Logic operator colors */
-  --logic-and: #3b82f6;
-  --logic-and-bg: #eff6ff;
-  --logic-and-border: #bfdbfe;
-  --logic-or: #f59e0b;
-  --logic-or-bg: #fffbeb;
-  --logic-or-border: #fde68a;
+  --logic-and:        #3b82f6;
+  --logic-and-bg:     rgba(59, 130, 246, 0.12);
+  --logic-and-border: rgba(59, 130, 246, 0.3);
+  --logic-or:         #f59e0b;
+  --logic-or-bg:      rgba(245, 158, 11, 0.12);
+  --logic-or-border:  rgba(245, 158, 11, 0.3);
 
-  /* Nesting depth border colors — our signature visual detail */
-  --depth-0: #6366f1;
+  --depth-0: #06b6d4;
   --depth-1: #8b5cf6;
-  --depth-2: #ec4899;
+  --depth-2: #f43f5e;
   --depth-3: #f59e0b;
   --depth-4: #10b981;
 
-  /* Surfaces */
-  --surface: #ffffff;
-  --surface-raised: #f8fafc;
+  --success:        #10b981;
+  --success-bg:     rgba(16, 185, 129, 0.12);
+  --warning:        #f59e0b;
+  --danger:         #f43f5e;
+  --danger-bg:      rgba(244, 63, 94, 0.1);
 
-  /* Code / preview area */
-  --code-bg: #0f172a;
-  --code-text: #e2e8f0;
+  --code-bg:        #050810;
+  --code-keyword:   #06b6d4;
+  --code-field:     #a78bfa;
+  --code-operator:  #f59e0b;
+  --code-value:     #34d399;
+  --code-punct:     #7a92b2;
+
+  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --font-mono: 'DM Mono', 'Fira Code', monospace;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  --shadow-sm:    0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md:    0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg:    0 8px 32px rgba(0,0,0,0.6);
+  --shadow-brand: 0 0 20px rgba(6, 182, 212, 0.2);
 }
 
-.dark {
-  --bg-base: #0f1117;
-  --bg-secondary: #161b27;
-  --bg-tertiary: #1e2535;
-
-  --border: #2d3748;
-  --border-strong: #4a5568;
-
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-
-  --brand: #818dfb;
-  --brand-hover: #6366f1;
-
-  --logic-and: #60a5fa;
-  --logic-and-bg: #1e3a5f;
-  --logic-and-border: #1d4ed8;
-  --logic-or: #fbbf24;
-  --logic-or-bg: #451a03;
-  --logic-or-border: #d97706;
-
-  --surface: #161b27;
-  --surface-raised: #1e2535;
-
-  --code-bg: #0d1117;
-  --code-text: #e2e8f0;
+.light {
+  --bg-base:        #f0f4f8;
+  --bg-secondary:   #ffffff;
+  --bg-tertiary:    #ffffff;
+  --bg-elevated:    #e8f0f8;
+  --border:         #d1dce8;
+  --border-strong:  #b0c4d8;
+  --border-subtle:  #e8f0f8;
+  --text-primary:   #0a1628;
+  --text-secondary: #4a6080;
+  --text-muted:     #8aa0b8;
+  --text-code:      #1a3a5c;
+  --brand:          #0891b2;
+  --brand-dim:      #0e7490;
+  --brand-glow:     rgba(8, 145, 178, 0.12);
+  --brand-subtle:   rgba(8, 145, 178, 0.06);
+  --logic-and-bg:   rgba(59, 130, 246, 0.08);
+  --logic-or-bg:    rgba(245, 158, 11, 0.08);
+  --code-bg:        #0a1628;
+  --shadow-sm:      0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md:      0 4px 16px rgba(0,0,0,0.1);
 }
 
-/* ─────────────────────────────────────────────
-   Base reset & globals
-───────────────────────────────────────────── */
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+*, *::before, *::after { box-sizing: border-box; }
 
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-sans);
 }
 
 body {
-  background-color: var(--bg-base);
+  background: var(--bg-base);
   color: var(--text-primary);
-  transition: background-color 0.2s ease, color 0.2s ease;
+  font-family: var(--font-sans);
+  transition: background 0.25s ease, color 0.25s ease;
+  min-height: 100vh;
 }
 
-/* ─────────────────────────────────────────────
-   Scrollbar styling — subtle, matches our palette
-───────────────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(6, 182, 212, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 182, 212, 0.018) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+body > * { position: relative; z-index: 1; }
 
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
   background: var(--border-strong);
-  border-radius: 3px;
+  border-radius: 99px;
 }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
-}
+.depth-0 { border-left-color: var(--depth-0) !important; }
+.depth-1 { border-left-color: var(--depth-1) !important; }
+.depth-2 { border-left-color: var(--depth-2) !important; }
+.depth-3 { border-left-color: var(--depth-3) !important; }
+.depth-4 { border-left-color: var(--depth-4) !important; }
 
-/* ─────────────────────────────────────────────
-   Utility: depth-colored left borders
-   Used on ConditionGroup to show nesting depth
-───────────────────────────────────────────── */
-.depth-border-0 { border-left-color: var(--depth-0); }
-.depth-border-1 { border-left-color: var(--depth-1); }
-.depth-border-2 { border-left-color: var(--depth-2); }
-.depth-border-3 { border-left-color: var(--depth-3); }
-.depth-border-4 { border-left-color: var(--depth-4); }
+.depth-0-glow { box-shadow: -2px 0 12px rgba(6,   182, 212, 0.2); }
+.depth-1-glow { box-shadow: -2px 0 12px rgba(139,  92, 246, 0.2); }
+.depth-2-glow { box-shadow: -2px 0 12px rgba(244,  63,  94, 0.2); }
+.depth-3-glow { box-shadow: -2px 0 12px rgba(245, 158,  11, 0.2); }
+.depth-4-glow { box-shadow: -2px 0 12px rgba( 16, 185, 129, 0.2); }
 
-/* Focus ring — consistent across all interactive elements */
 .focus-ring:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  box-shadow: 0 0 0 2px var(--bg-base), 0 0 0 4px var(--brand);
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}
+
+.animate-slide-down { animation: slideDown 0.2s ease forwards; }
+.animate-slide-up   { animation: slideUp 0.2s ease forwards; }
+.animate-fade-in    { animation: fadeIn 0.15s ease forwards; }
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 25%,
+    var(--bg-elevated) 50%,
+    var(--bg-tertiary) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
