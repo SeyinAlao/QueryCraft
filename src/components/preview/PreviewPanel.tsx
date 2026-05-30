@@ -56,29 +56,38 @@ export function PreviewPanel() {
   }
 
   const highlight = (code: string, fmt: QueryFormat) => {
+    const esc = code
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+
     if (fmt === 'sql') {
-      return code
-        .replace(/\b(SELECT|FROM|WHERE|AND|OR|NOT|LIKE|IN|IS|NULL|BETWEEN|REGEXP)\b/g,
-          '<span style="color:var(--code-keyword);font-weight:600">$1</span>')
-        .replace(/'([^']*)'/g,
-          '<span style="color:var(--code-value)">\'$1\'</span>')
-        .replace(/\b(\d+\.?\d*)\b/g,
-          '<span style="color:var(--code-value)">$1</span>')
+      return esc
+        .replace(/'([^']*)'/g, '<span style="color:var(--code-value)">\'$1\'</span>')
+        .replace(/\b(\d+\.?\d*)\b/g, '<span style="color:var(--code-value)">$1</span>')
+        .replace(
+          /\b(SELECT|FROM|WHERE|AND|OR|NOT|LIKE|IN|IS|NULL|BETWEEN|REGEXP)\b/g,
+          '<span style="color:var(--code-keyword);font-weight:600">$1</span>'
+        )
     }
+
     if (fmt === 'mongodb') {
-      return code
+      return esc
         .replace(/"\$\w+"/g, m => `<span style="color:var(--code-keyword);font-weight:600">${m}</span>`)
         .replace(/"([^$][^"]*)":/g, m => `<span style="color:var(--code-field)">${m}</span>`)
         .replace(/:\s*"([^"]*)"/g, (_, v) => `: <span style="color:var(--code-value)">"${v}"</span>`)
+        .replace(/:\s*(\d+\.?\d*)/g, (_, v) => `: <span style="color:var(--code-value)">${v}</span>`)
     }
+
     if (fmt === 'graphql') {
-      return code
+      return esc
+        .replace(/"([^"]*)"/g, v => `<span style="color:var(--code-value)">${v}</span>`)
         .replace(/\b(query|filter|and|or)\b/g,
           '<span style="color:var(--code-keyword);font-weight:600">$1</span>')
-        .replace(/"([^"]*)"/g,
-          '<span style="color:var(--code-value)">"$1"</span>')
+        .replace(/:\s*(\d+\.?\d*)/g, (_, v) => `: <span style="color:var(--code-value)">${v}</span>`)
     }
-    return code
+
+    return esc
   }
 
   const TABS: { key: QueryFormat; label: string }[] = [

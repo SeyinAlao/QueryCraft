@@ -1,10 +1,15 @@
 'use client'
 
 import { memo, useCallback } from 'react'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
 import { ChevronDown, ChevronRight, Plus, Layers, Trash2 } from 'lucide-react'
 import { cn, getDepthBorderClass } from '@/lib/utils'
 import { useQueryStore } from '@/store/queryStore'
 import { QueryRule } from './QueryRule'
+import { SortableNode } from './SortableNode'
 import type { QueryGroup, QueryNode } from '@/types/query'
 
 interface ConditionGroupProps {
@@ -13,8 +18,11 @@ interface ConditionGroupProps {
   isRoot?: boolean
 }
 
-const DEPTH_GLOW = ['depth-0-glow','depth-1-glow','depth-2-glow','depth-3-glow','depth-4-glow']
-const DEPTH_BG   = [
+const DEPTH_GLOW = [
+  'depth-0-glow', 'depth-1-glow', 'depth-2-glow',
+  'depth-3-glow', 'depth-4-glow',
+]
+const DEPTH_BG = [
   'bg-[var(--bg-secondary)]',
   'bg-[var(--bg-tertiary)]',
   'bg-[var(--bg-elevated)]',
@@ -23,7 +31,9 @@ const DEPTH_BG   = [
 ]
 
 export const ConditionGroup = memo(function ConditionGroup({
-  group, depth, isRoot = false,
+  group,
+  depth,
+  isRoot = false,
 }: ConditionGroupProps) {
   const addRule          = useQueryStore(s => s.addRule)
   const addGroup         = useQueryStore(s => s.addGroup)
@@ -36,15 +46,17 @@ export const ConditionGroup = memo(function ConditionGroup({
   const glowClass  = DEPTH_GLOW[depthIndex]
   const bgClass    = DEPTH_BG[depthIndex]
 
-  const handleAddRule         = useCallback(() => addRule(group.id),          [addRule, group.id])
-  const handleAddGroup        = useCallback(() => addGroup(group.id),         [addGroup, group.id])
-  const handleRemove          = useCallback(() => removeNode(group.id),       [removeNode, group.id])
-  const handleToggleCollapse  = useCallback(() => toggleCollapse(group.id),   [toggleCollapse, group.id])
-  const handleSetAnd          = useCallback(() => updateGroupLogic(group.id, 'AND'), [updateGroupLogic, group.id])
-  const handleSetOr           = useCallback(() => updateGroupLogic(group.id, 'OR'),  [updateGroupLogic, group.id])
+  const handleAddRule        = useCallback(() => addRule(group.id),                    [addRule, group.id])
+  const handleAddGroup       = useCallback(() => addGroup(group.id),                   [addGroup, group.id])
+  const handleRemove         = useCallback(() => removeNode(group.id),                 [removeNode, group.id])
+  const handleToggleCollapse = useCallback(() => toggleCollapse(group.id),             [toggleCollapse, group.id])
+  const handleSetAnd         = useCallback(() => updateGroupLogic(group.id, 'AND'),    [updateGroupLogic, group.id])
+  const handleSetOr          = useCallback(() => updateGroupLogic(group.id, 'OR'),     [updateGroupLogic, group.id])
 
   const ruleCount  = group.children.filter(c => c.type === 'rule').length
   const groupCount = group.children.filter(c => c.type === 'group').length
+
+  const childIds = group.children.map(c => c.id)
 
   return (
     <div
@@ -69,7 +81,10 @@ export const ConditionGroup = memo(function ConditionGroup({
           className="flex-shrink-0 h-5 w-5 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-secondary)] rounded transition-colors duration-150"
           aria-label={group.collapsed ? 'Expand group' : 'Collapse group'}
         >
-          {group.collapsed ? <ChevronRight size={13} /> : <ChevronDown size={13} />}
+          {group.collapsed
+            ? <ChevronRight size={13} />
+            : <ChevronDown size={13} />
+          }
         </button>
 
         <span className="text-xs text-[var(--text-muted)] font-medium uppercase tracking-wider">
@@ -117,16 +132,19 @@ export const ConditionGroup = memo(function ConditionGroup({
           </button>
         )}
       </div>
-
       {!group.collapsed && (
         <div className="p-2 flex flex-col gap-2">
-          {group.children.map((child: QueryNode) =>
-            child.type === 'rule' ? (
-              <QueryRule key={child.id} rule={child} />
-            ) : (
-              <ConditionGroup key={child.id} group={child} depth={depth + 1} />
-            )
-          )}
+          <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
+            {group.children.map((child: QueryNode) =>
+              <SortableNode key={child.id} id={child.id}>
+                {child.type === 'rule' ? (
+                  <QueryRule rule={child} />
+                ) : (
+                  <ConditionGroup group={child} depth={depth + 1} />
+                )}
+              </SortableNode>
+            )}
+          </SortableContext>
 
           <div className="flex items-center gap-2 pt-1 pl-1">
             <button
@@ -135,7 +153,7 @@ export const ConditionGroup = memo(function ConditionGroup({
                 'flex items-center gap-1.5 h-7 px-3 text-xs text-[var(--text-muted)]',
                 'rounded-[var(--radius-sm)] border border-dashed border-[var(--border)]',
                 'hover:border-[var(--brand)] hover:text-[var(--brand)] hover:bg-[var(--brand-subtle)]',
-                'transition-all duration-150',
+                'transition-all duration-150 cursor-pointer',
               )}
             >
               <Plus size={11} /> Add Condition
@@ -146,7 +164,7 @@ export const ConditionGroup = memo(function ConditionGroup({
                 'flex items-center gap-1.5 h-7 px-3 text-xs text-[var(--text-muted)]',
                 'rounded-[var(--radius-sm)] border border-dashed border-[var(--border)]',
                 'hover:border-[#8b5cf6] hover:text-[#8b5cf6] hover:bg-[rgba(139,92,246,0.06)]',
-                'transition-all duration-150',
+                'transition-all duration-150 cursor-pointer',
               )}
             >
               <Layers size={11} /> Add Group
