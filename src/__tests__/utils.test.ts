@@ -11,7 +11,6 @@ describe('cn (class name utility)', () => {
   })
 
   it('deduplicates conflicting Tailwind classes', () => {
-    // tailwind-merge should keep the last px value
     expect(cn('px-4', 'px-6')).toBe('px-6')
   })
 })
