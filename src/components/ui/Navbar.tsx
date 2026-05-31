@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { History, Bookmark, Upload, Download, Sun, Moon, Database } from 'lucide-react'
 import { Logo } from './Logo'
@@ -19,6 +20,10 @@ export function Navbar({ onHistoryOpen, onPresetsOpen, onImport, onExport }: Nav
   const activeSchemaId  = useQueryStore(s => s.activeSchemaId)
   const setActiveSchema = useQueryStore(s => s.setActiveSchema)
   const { theme, setTheme } = useTheme()
+
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+
   const isDark = theme !== 'light'
 
   return (
@@ -93,7 +98,10 @@ export function Navbar({ onHistoryOpen, onPresetsOpen, onImport, onExport }: Nav
           )}
           aria-label="Toggle theme"
         >
-          {isDark ? <Sun size={15} /> : <Moon size={15} />}
+          {mounted
+            ? isDark ? <Sun size={15} /> : <Moon size={15} />
+            : <span className="w-[15px] h-[15px]" /> 
+          }
         </button>
       </div>
     </header>
