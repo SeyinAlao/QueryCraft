@@ -1,6 +1,7 @@
 'use client'
 
 import { memo, useCallback } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -10,6 +11,8 @@ import { cn, getDepthBorderClass } from '@/lib/utils'
 import { useQueryStore } from '@/store/queryStore'
 import { QueryRule } from './QueryRule'
 import { SortableNode } from './SortableNode'
+import { AnimatedRule } from './AnimatedRule'
+import { AnimatedGroupEntry, AnimatedGroupChildren } from './AnimatedGroup'
 import type { QueryGroup, QueryNode } from '@/types/query'
 
 interface ConditionGroupProps {
@@ -31,9 +34,7 @@ const DEPTH_BG = [
 ]
 
 export const ConditionGroup = memo(function ConditionGroup({
-  group,
-  depth,
-  isRoot = false,
+  group, depth, isRoot = false,
 }: ConditionGroupProps) {
   const addRule          = useQueryStore(s => s.addRule)
   const addGroup         = useQueryStore(s => s.addGroup)
@@ -46,24 +47,22 @@ export const ConditionGroup = memo(function ConditionGroup({
   const glowClass  = DEPTH_GLOW[depthIndex]
   const bgClass    = DEPTH_BG[depthIndex]
 
-  const handleAddRule        = useCallback(() => addRule(group.id),                    [addRule, group.id])
-  const handleAddGroup       = useCallback(() => addGroup(group.id),                   [addGroup, group.id])
-  const handleRemove         = useCallback(() => removeNode(group.id),                 [removeNode, group.id])
-  const handleToggleCollapse = useCallback(() => toggleCollapse(group.id),             [toggleCollapse, group.id])
-  const handleSetAnd         = useCallback(() => updateGroupLogic(group.id, 'AND'),    [updateGroupLogic, group.id])
-  const handleSetOr          = useCallback(() => updateGroupLogic(group.id, 'OR'),     [updateGroupLogic, group.id])
+  const handleAddRule        = useCallback(() => addRule(group.id),                 [addRule, group.id])
+  const handleAddGroup       = useCallback(() => addGroup(group.id),                [addGroup, group.id])
+  const handleRemove         = useCallback(() => removeNode(group.id),              [removeNode, group.id])
+  const handleToggleCollapse = useCallback(() => toggleCollapse(group.id),          [toggleCollapse, group.id])
+  const handleSetAnd         = useCallback(() => updateGroupLogic(group.id, 'AND'), [updateGroupLogic, group.id])
+  const handleSetOr          = useCallback(() => updateGroupLogic(group.id, 'OR'),  [updateGroupLogic, group.id])
 
   const ruleCount  = group.children.filter(c => c.type === 'rule').length
   const groupCount = group.children.filter(c => c.type === 'group').length
-
-  const childIds = group.children.map(c => c.id)
+  const childIds   = group.children.map(c => c.id)
 
   return (
     <div
       className={cn(
         'rounded-[var(--radius-lg)]',
-        'border-l-[3px]',
-        'border border-[var(--border)]',
+        'border-l-[3px] border border-[var(--border)]',
         bgClass, depthClass, glowClass,
         'transition-all duration-200',
         depth > 0 ? 'ml-4' : '',
@@ -71,8 +70,7 @@ export const ConditionGroup = memo(function ConditionGroup({
     >
       <div
         className={cn(
-          'flex items-center gap-2 px-3 py-2',
-          'border-b',
+          'flex items-center gap-2 px-3 py-2 border-b',
           group.collapsed ? 'border-transparent' : 'border-[var(--border-subtle)]',
         )}
       >
@@ -83,8 +81,7 @@ export const ConditionGroup = memo(function ConditionGroup({
         >
           {group.collapsed
             ? <ChevronRight size={13} />
-            : <ChevronDown size={13} />
-          }
+            : <ChevronDown size={13} />}
         </button>
 
         <span className="text-xs text-[var(--text-muted)] font-medium uppercase tracking-wider">
@@ -112,13 +109,17 @@ export const ConditionGroup = memo(function ConditionGroup({
           >OR</button>
         </div>
 
-        {group.collapsed && (
-          <span className="text-xs text-[var(--text-muted)] font-mono animate-fade-in">
-            {ruleCount} condition{ruleCount !== 1 ? 's' : ''}
-            {groupCount > 0 && `, ${groupCount} group${groupCount !== 1 ? 's' : ''}`}
-            {' '}({group.logic})
-          </span>
-        )}
+        <AnimatePresence>
+          {group.collapsed && (
+            <AnimatedRule id={`${group.id}-summary`}>
+              <span className="text-xs text-[var(--text-muted)] font-mono">
+                {ruleCount} condition{ruleCount !== 1 ? 's' : ''}
+                {groupCount > 0 && `, ${groupCount} group${groupCount !== 1 ? 's' : ''}`}
+                {' '}({group.logic})
+              </span>
+            </AnimatedRule>
+          )}
+        </AnimatePresence>
 
         <div className="flex-1" />
 
@@ -132,18 +133,27 @@ export const ConditionGroup = memo(function ConditionGroup({
           </button>
         )}
       </div>
-      {!group.collapsed && (
+
+      <AnimatedGroupChildren isVisible={!group.collapsed}>
         <div className="p-2 flex flex-col gap-2">
           <SortableContext items={childIds} strategy={verticalListSortingStrategy}>
-            {group.children.map((child: QueryNode) =>
-              <SortableNode key={child.id} id={child.id}>
-                {child.type === 'rule' ? (
-                  <QueryRule rule={child} />
+            <AnimatePresence initial={false}>
+              {group.children.map((child: QueryNode) =>
+                child.type === 'rule' ? (
+                  <AnimatedRule key={child.id} id={child.id}>
+                    <SortableNode id={child.id}>
+                      <QueryRule rule={child} />
+                    </SortableNode>
+                  </AnimatedRule>
                 ) : (
-                  <ConditionGroup group={child} depth={depth + 1} />
-                )}
-              </SortableNode>
-            )}
+                  <AnimatedGroupEntry key={child.id} id={child.id}>
+                    <SortableNode id={child.id}>
+                      <ConditionGroup group={child} depth={depth + 1} />
+                    </SortableNode>
+                  </AnimatedGroupEntry>
+                )
+              )}
+            </AnimatePresence>
           </SortableContext>
 
           <div className="flex items-center gap-2 pt-1 pl-1">
@@ -171,7 +181,7 @@ export const ConditionGroup = memo(function ConditionGroup({
             </button>
           </div>
         </div>
-      )}
+      </AnimatedGroupChildren>
     </div>
   )
 })
