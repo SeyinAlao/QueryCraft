@@ -12,15 +12,13 @@ interface RuleValueInputProps {
 }
 
 const inputBase = cn(
-  'h-8 px-3 text-sm',
+  'h-9 sm:h-8 text-sm px-3 w-full transition-all duration-150', 
   'bg-[var(--bg-base)] text-[var(--text-primary)]',
-  'border border-[var(--border)]',
-  'rounded-[var(--radius-sm)]',
+  'border border-[var(--border)] rounded-lg sm:rounded-[var(--radius-sm)]',
   'placeholder:text-[var(--text-muted)]',
   'focus:outline-none focus:border-[var(--brand)]',
   'focus:shadow-[0_0_0_2px_var(--brand-glow)]',
-  'transition-all duration-150',
-  'w-full min-w-0',
+  'sm:w-64 max-w-full', 
 )
 
 export function RuleValueInput({
@@ -31,7 +29,7 @@ export function RuleValueInput({
 }: RuleValueInputProps) {
   if (!operatorOption.requiresValue) {
     return (
-      <span className="text-xs text-[var(--text-muted)] italic px-2 flex items-center">
+      <span className="text-xs text-[var(--text-muted)] italic px-2 flex items-center h-9 sm:h-8">
         no value needed
       </span>
     )
@@ -41,32 +39,29 @@ export function RuleValueInput({
     const boolVal = value === true || value === 'true'
     return (
       <button
+        type="button"
         onClick={() => onChange(!boolVal)}
         className={cn(
-          'flex items-center gap-2 h-8 px-3',
-          'rounded-[var(--radius-sm)]',
-          'border border-[var(--border)]',
-          'bg-[var(--bg-base)]',
-          'text-sm font-medium',
-          'transition-all duration-150',
-          boolVal ? 'text-[var(--success)]' : 'text-[var(--text-muted)]',
+          'flex items-center gap-3 h-9 sm:h-8 w-full sm:w-auto px-3',
+          'border border-[var(--border)] rounded-lg sm:rounded-[var(--radius-sm)]',
+          'bg-[var(--bg-base)] text-sm font-medium transition-all duration-150',
+          boolVal ? 'text-[var(--success)] border-[var(--success)]' : 'text-[var(--text-muted)]',
         )}
       >
         <span
           className={cn(
-            'relative inline-flex h-4 w-7 rounded-full transition-colors duration-200',
+            'relative inline-flex h-4 w-7 rounded-full transition-colors duration-200 shrink-0',
             boolVal ? 'bg-[var(--success)]' : 'bg-[var(--border-strong)]',
           )}
         >
           <span
             className={cn(
-              'absolute top-0.5 h-3 w-3 rounded-full bg-white',
-              'transition-transform duration-200 shadow-sm',
+              'absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform duration-200 shadow-sm',
               boolVal ? 'translate-x-3.5' : 'translate-x-0.5',
             )}
           />
         </span>
-        <span>{boolVal ? 'true' : 'false'}</span>
+        <span className="font-mono text-xs uppercase tracking-wider">{boolVal ? 'true' : 'false'}</span>
       </button>
     )
   }
@@ -95,15 +90,16 @@ export function RuleValueInput({
       onChange(next)
     }
     return (
-      <div className="flex flex-wrap gap-1 min-w-0 flex-1">
+      <div className="flex flex-wrap gap-1.5 w-full">
         {field.enumOptions?.map(opt => (
           <button
+            type="button"
             key={opt}
             onClick={() => toggle(opt)}
             className={cn(
-              'px-2 py-0.5 rounded text-xs font-mono transition-all duration-100',
+              'px-2.5 py-1.5 sm:py-0.5 rounded-md sm:rounded text-xs font-mono transition-all duration-100 flex-grow sm:flex-grow-0 min-h-[34px] sm:min-h-0 flex items-center justify-center',
               selected.includes(opt)
-                ? 'bg-[var(--brand-subtle)] text-[var(--brand)] border border-[rgba(6,182,212,0.3)]'
+                ? 'bg-[var(--brand-subtle)] text-[var(--brand)] border border-[rgba(6,182,212,0.4)]'
                 : 'bg-[var(--bg-elevated)] text-[var(--text-muted)] border border-[var(--border)] hover:border-[var(--border-strong)]'
             )}
           >
@@ -117,7 +113,7 @@ export function RuleValueInput({
   if (operatorOption.requiresRange) {
     const range = Array.isArray(value) ? value as [number, number] : [0, 0]
     return (
-      <div className="flex items-center gap-2 flex-1 min-w-0">
+      <div className="flex flex-row items-center gap-2 w-full">
         <input
           type={field.type === 'date' ? 'date' : 'number'}
           value={String(range[0] ?? '')}
@@ -125,10 +121,10 @@ export function RuleValueInput({
             field.type === 'number' ? Number(e.target.value) : e.target.value,
             range[1],
           ] as RuleValue)}
-          className={cn(inputBase, 'w-24')}
+          className={cn(inputBase, 'flex-1 sm:w-28')}
           placeholder="Min"
         />
-        <span className="text-xs text-[var(--text-muted)] shrink-0">and</span>
+        <span className="text-xs text-[var(--text-muted)] shrink-0 font-mono">to</span>
         <input
           type={field.type === 'date' ? 'date' : 'number'}
           value={String(range[1] ?? '')}
@@ -136,43 +132,20 @@ export function RuleValueInput({
             range[0],
             field.type === 'number' ? Number(e.target.value) : e.target.value,
           ] as RuleValue)}
-          className={cn(inputBase, 'w-24')}
+          className={cn(inputBase, 'flex-1 sm:w-28')}
           placeholder="Max"
         />
       </div>
     )
   }
 
-  if (field.type === 'date') {
-    return (
-      <input
-        type="date"
-        value={String(value ?? '')}
-        onChange={e => onChange(e.target.value)}
-        className={inputBase}
-      />
-    )
-  }
-
-  if (field.type === 'number') {
-    return (
-      <input
-        type="number"
-        value={String(value ?? '')}
-        onChange={e => onChange(Number(e.target.value))}
-        className={inputBase}
-        placeholder="Enter number..."
-      />
-    )
-  }
-
   return (
     <input
-      type="text"
+      type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'}
       value={String(value ?? '')}
-      onChange={e => onChange(e.target.value)}
+      onChange={e => onChange(field.type === 'number' ? Number(e.target.value) : e.target.value)}
       className={inputBase}
-      placeholder="Enter value..."
+      placeholder={field.type === 'number' ? "Enter number..." : field.type === 'date' ? "" : "Enter value..."}
     />
   )
 }

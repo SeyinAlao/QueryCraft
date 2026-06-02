@@ -1,267 +1,325 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Copy, Check, ChevronUp, ChevronDown } from 'lucide-react'
+import { useState, useMemo, useCallback } from 'react'
+import { Copy, Check, ChevronUp, ChevronDown, Database, Wifi } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useQueryStore } from '@/store/queryStore'
 import { generateSQL, generateMongoDB, generateGraphQL } from '@/engine/queryGenerator'
 import { executeQuery } from '@/engine/queryExecutor'
 import type { QueryFormat } from '@/types/query'
 
-type SortDir = 'asc' | 'desc'
+const PAGE_SIZE = 8
+const MAX_VISIBLE_PAGES = 5
 
-export function PreviewPanel() {
-  const root          = useQueryStore(s => s.root)
-  const schemaId      = useQueryStore(s => s.activeSchemaId)
-  const [format, setFormat] = useState<QueryFormat>('sql')
-  const [copied, setCopied] = useState(false)
-  const [sortKey, setSortKey]   = useState<string | null>(null)
-  const [sortDir, setSortDir]   = useState<SortDir>('asc')
-  const [page, setPage]         = useState(1)
-  const PAGE_SIZE = 5
+function highlight(code: string, fmt: QueryFormat): string {
+  const esc = code
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
 
-  const generatedQuery = useMemo(() => {
-    switch (format) {
-      case 'sql':     return generateSQL(root, schemaId)
-      case 'mongodb': return generateMongoDB(root)
-      case 'graphql': return generateGraphQL(root, schemaId)
-    }
-  }, [root, schemaId, format])
+  if (fmt === 'sql') {
+    return esc
+      .replace(/'([^']*)'/g, '<span style="color:var(--code-value)">\'$1\'</span>')
+      .replace(/\b(\d+\.?\d*)\b/g, '<span style="color:var(--code-value)">$1</span>')
+      .replace(/\b(SELECT|FROM|WHERE|AND|OR|NOT|LIKE|IN|IS|NULL|BETWEEN|REGEXP)\b/g,
+        '<span style="color:var(--code-keyword);font-weight:500">$1</span>')
+  }
+  if (fmt === 'mongodb') {
+    return esc
+      .replace(/"\$\w+"/g, m => `<span style="color:var(--code-keyword);font-weight:500">${m}</span>`)
+      .replace(/"([^$][^"]*)":/g, m => `<span style="color:var(--code-field)">${m}</span>`)
+      .replace(/:\s*"([^"]*)"/g, (_, v) => `: <span style="color:var(--code-value)">"${v}"</span>`)
+      .replace(/:\s*(\d+\.?\d*)/g, (_, v) => `: <span style="color:var(--code-value)">${v}</span>`)
+  }
+  if (fmt === 'graphql') {
+    return esc
+      .replace(/"([^"]*)"/g, v => `<span style="color:var(--code-value)">${v}</span>`)
+      .replace(/\b(query|filter|and|or)\b/g,
+        '<span style="color:var(--code-keyword);font-weight:500">$1</span>')
+      .replace(/:\s*(\d+\.?\d*)/g, (_, v) => `: <span style="color:var(--code-value)">${v}</span>`)
+  }
+  return esc
+}
 
-  const results = useMemo(() => executeQuery(root, schemaId), [root, schemaId])
+const getColWidth = (col: string): string => {
+  const key = col.toLowerCase()
+  if (key === 'name') return '170px'
+  if (key === 'email') return '240px'
+  if (key === 'age') return '75px'
+  if (key === 'country') return '130px'
+  if (key === 'status') return '110px'
+  if (key === 'purchases') return '110px'
+  if (key === 'createdat' || key === 'created_at') return '150px'
+  if (key === 'verified') return '100px'
+  return '130px' 
+}
+
+interface PreviewPanelProps {
+  hasRun?: boolean
+}
+
+export function PreviewPanel({ hasRun = true }: PreviewPanelProps) {
+  const root     = useQueryStore(s => s.root)
+  const schemaId = useQueryStore(s => s.activeSchemaId)
+
+  const [fmt, setFmt]         = useState<QueryFormat>('sql')
+  const [copied, setCopied]   = useState(false)
+  const [sortKey, setSortKey] = useState<string | null>(null)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [page, setPage]       = useState(1)
+
+  const query = useMemo(() => {
+    if (fmt === 'sql')     return generateSQL(root, schemaId)
+    if (fmt === 'mongodb') return generateMongoDB(root)
+    return generateGraphQL(root, schemaId)
+  }, [root, schemaId, fmt])
+
+  const results = useMemo(() => {
+    if (!hasRun) return []
+    return executeQuery(root, schemaId) || []
+  }, [root, schemaId, hasRun])
 
   const sorted = useMemo(() => {
     if (!sortKey) return results
     return [...results].sort((a, b) => {
-      const av = a[sortKey], bv = b[sortKey]
-      const cmp = String(av).localeCompare(String(bv), undefined, { numeric: true })
+      const cmp = String(a[sortKey]).localeCompare(String(b[sortKey]), undefined, { numeric: true })
       return sortDir === 'asc' ? cmp : -cmp
     })
   }, [results, sortKey, sortDir])
 
   const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
-  const pageRows   = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-  const columns    = results.length > 0 ? Object.keys(results[0]) : []
+  const activePage = Math.min(page, totalPages)
+  
+  const pageRows = useMemo(() => {
+    return sorted.slice((activePage - 1) * PAGE_SIZE, activePage * PAGE_SIZE)
+  }, [sorted, activePage])
 
-  const handleSort = (key: string) => {
+  const columns = useMemo(() => {
+    return results.length > 0 && results[0] && typeof results[0] === 'object'
+      ? Object.keys(results[0])
+      : []
+  }, [results])
+
+  const visiblePages = useMemo(() => {
+    const pages = []
+    let startPage = Math.max(1, activePage - Math.floor(MAX_VISIBLE_PAGES / 2))
+    let endPage = startPage + MAX_VISIBLE_PAGES - 1
+
+    if (endPage > totalPages) {
+      endPage = totalPages
+      startPage = Math.max(1, endPage - MAX_VISIBLE_PAGES + 1)
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i)
+    }
+    return pages
+  }, [activePage, totalPages])
+
+  const handleSort = useCallback((key: string) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
     else { setSortKey(key); setSortDir('asc') }
     setPage(1)
-  }
+  }, [sortKey])
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(generatedQuery)
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(query)
     setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  const highlight = (code: string, fmt: QueryFormat) => {
-    const esc = code
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-
-    if (fmt === 'sql') {
-      return esc
-        .replace(/'([^']*)'/g, '<span style="color:var(--code-value)">\'$1\'</span>')
-        .replace(/\b(\d+\.?\d*)\b/g, '<span style="color:var(--code-value)">$1</span>')
-        .replace(
-          /\b(SELECT|FROM|WHERE|AND|OR|NOT|LIKE|IN|IS|NULL|BETWEEN|REGEXP)\b/g,
-          '<span style="color:var(--code-keyword);font-weight:600">$1</span>'
-        )
-    }
-
-    if (fmt === 'mongodb') {
-      return esc
-        .replace(/"\$\w+"/g, m => `<span style="color:var(--code-keyword);font-weight:600">${m}</span>`)
-        .replace(/"([^$][^"]*)":/g, m => `<span style="color:var(--code-field)">${m}</span>`)
-        .replace(/:\s*"([^"]*)"/g, (_, v) => `: <span style="color:var(--code-value)">"${v}"</span>`)
-        .replace(/:\s*(\d+\.?\d*)/g, (_, v) => `: <span style="color:var(--code-value)">${v}</span>`)
-    }
-
-    if (fmt === 'graphql') {
-      return esc
-        .replace(/"([^"]*)"/g, v => `<span style="color:var(--code-value)">${v}</span>`)
-        .replace(/\b(query|filter|and|or)\b/g,
-          '<span style="color:var(--code-keyword);font-weight:600">$1</span>')
-        .replace(/:\s*(\d+\.?\d*)/g, (_, v) => `: <span style="color:var(--code-value)">${v}</span>`)
-    }
-
-    return esc
-  }
-
-  const TABS: { key: QueryFormat; label: string }[] = [
-    { key: 'sql',     label: 'SQL' },
-    { key: 'mongodb', label: 'MongoDB' },
-    { key: 'graphql', label: 'GraphQL' },
-  ]
+    setTimeout(() => setCopied(false), 1500)
+  }, [query])
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div className="flex flex-col border-b border-[var(--border)]" style={{ height: '50%' }}>
-        <div className="flex items-center justify-between px-4 pt-3 pb-0 flex-shrink-0">
-          <div className="flex items-center gap-1">
-            {TABS.map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => setFormat(tab.key)}
-                className={cn(
-                  'h-7 px-3 text-xs font-mono font-medium rounded-t',
-                  'transition-all duration-150',
-                  'border-b-2',
-                  format === tab.key
-                    ? 'text-[var(--brand)] border-[var(--brand)] bg-[var(--brand-subtle)]'
-                    : 'text-[var(--text-muted)] border-transparent hover:text-[var(--text-secondary)]',
-                )}
-              >
-                {tab.label}
-              </button>
-            ))}
+    <div className="flex flex-col h-full overflow-hidden font-sans bg-[var(--bg-base)]">
+      
+      <div className="flex flex-col border-b border-[var(--border)] overflow-hidden h-1/2">
+        <div className="flex items-center justify-between px-3 sm:px-8 h-14 border-b border-[var(--border)] bg-[var(--bg-secondary)] flex-shrink-0 select-none overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <span className="text-[11px] font-mono text-[var(--text-muted)] uppercase tracking-[0.09em] flex-shrink-0 hidden sm:inline">
+              Preview
+            </span>
+            <span className="text-[var(--border-strong)] text-[12px] font-mono opacity-40 select-none flex-shrink-0 hidden sm:inline">//</span>
+            
+            <div className="flex items-center gap-1 sm:gap-2">
+              {(['sql', 'mongodb', 'graphql'] as QueryFormat[]).map(f => {
+                const isActive = fmt === f
+                return (
+                  <button 
+                    key={f} 
+                    onClick={() => setFmt(f)}
+                    className={cn(
+                      'font-mono uppercase tracking-[0.06em] rounded-md transition-all duration-150 flex items-center justify-center h-8 px-2 sm:px-4 text-[10px] sm:text-[11px] cursor-pointer select-none shadow-sm active:scale-[0.97] border min-w-[60px] sm:min-w-[68px]',
+                      isActive
+                        ? 'text-[var(--brand)] bg-[var(--brand-subtle)] border-[var(--brand)] font-bold'
+                        : 'text-[var(--text-muted)] bg-[var(--bg-base)] border-[var(--border)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] font-medium',
+                    )}
+                  >
+                    {f === 'mongodb' ? 'Mongo' : f.toUpperCase()}
+                  </button>
+                )
+              })}
+            </div>
           </div>
-          <button
+
+          <button 
             onClick={handleCopy}
             className={cn(
-              'flex items-center gap-1.5 h-7 px-2.5 text-xs rounded',
-              'transition-all duration-150',
-              copied
-                ? 'text-[var(--success)] bg-[var(--success-bg)]'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]',
+              "flex items-center justify-center gap-1.5 sm:gap-2 h-8 px-2 sm:px-4 text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.06em] rounded-md border transition-all duration-150 min-w-[70px] sm:min-w-[96px] cursor-pointer select-none shadow-sm active:scale-[0.97] flex-shrink-0 ml-2",
+              copied 
+                ? "bg-[var(--success-subtle)] border-[var(--success)] text-[var(--success)] font-bold"
+                : "bg-[var(--bg-base)] border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] font-medium"
             )}
           >
-            {copied ? <Check size={12} /> : <Copy size={12} />}
-            {copied ? 'Copied' : 'Copy'}
+            {copied ? <Check size={11} className="text-[var(--success)] flex-shrink-0" /> : <Copy size={11} className="flex-shrink-0 opacity-70" />}
+            <span>{copied ? 'Copied' : 'Copy'}</span>
           </button>
         </div>
-        <div
-          className="flex-1 overflow-auto p-4 font-mono text-xs leading-relaxed"
-          style={{ background: 'var(--code-bg)', color: 'var(--text-code)' }}
-        >
-          <div className="flex gap-4">
-            <div className="select-none text-right" style={{ color: 'var(--text-muted)', minWidth: '1.5rem' }}>
-              {generatedQuery.split('\n').map((_, i) => (
-                <div key={i}>{i + 1}</div>
-              ))}
-            </div>
-            <pre
-              className="flex-1 whitespace-pre-wrap break-words"
-              dangerouslySetInnerHTML={{ __html: highlight(generatedQuery, format) }}
-            />
+
+        <div className="flex-1 overflow-auto bg-[var(--code-bg)]">
+          <div 
+            className="min-w-full w-max px-4 sm:px-8 font-mono text-[11px] sm:text-[12px] leading-[1.8] text-[#E8E4DC] select-text flex flex-col"
+            style={{ paddingTop: '28px', paddingBottom: '28px' }}
+          >
+            {query.split('\n').map((line, i) => (
+              <div key={i} className="flex items-start min-w-full group">
+                <span className="select-none w-7 sm:w-9 text-left pr-2 sm:pr-3 tabular-nums text-[var(--code-ln)] text-[10px] sm:text-[11px] opacity-35 font-medium border-r border-[var(--border)] border-opacity-20 mr-2 sm:mr-4 flex-shrink-0">
+                  {i + 1}
+                </span>
+                <span className="whitespace-pre pr-8" dangerouslySetInnerHTML={{ __html: highlight(line, fmt) }} />
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col overflow-hidden" style={{ height: '50%' }}>
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--border)] flex-shrink-0">
-          <span className="text-xs font-semibold text-[var(--text-primary)] uppercase tracking-wider">
-            Results
-          </span>
-          <span
-            className={cn(
-              'text-xs font-mono px-2 py-0.5 rounded',
-              results.length > 0
-                ? 'bg-[var(--success-bg)] text-[var(--success)]'
-                : 'bg-[var(--bg-elevated)] text-[var(--text-muted)]',
-            )}
-          >
-            {results.length} record{results.length !== 1 ? 's' : ''} matched
-          </span>
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <div className="flex items-center justify-between px-3 sm:px-8 h-14 border-b border-[var(--border)] bg-[var(--bg-secondary)] flex-shrink-0 select-none overflow-x-auto no-scrollbar">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="text-[11px] font-mono text-[var(--text-muted)] uppercase tracking-[0.09em] hidden sm:inline">
+              Inspection
+            </span>
+            <span className="text-[var(--border-strong)] text-[12px] font-mono opacity-40 hidden sm:inline">//</span>
+            <span className={cn(
+              'text-[10px] sm:text-[11px] font-mono font-semibold uppercase tracking-[0.05em] whitespace-nowrap',
+              results.length > 0 ? 'text-[var(--success)]' : 'text-[var(--text-muted)]',
+            )}>
+              {results.length} matched
+            </span>
+            <div className="flex items-center gap-1.5 ml-1">
+              <Wifi size={11} className="text-[var(--success)]" />
+              <span className="text-[10px] font-mono text-[var(--text-dim)] uppercase tracking-wider hidden md:block">
+                Simulator
+              </span>
+            </div>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1 sm:gap-1.5 ml-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={activePage === 1}
+                className="h-7 w-7 flex items-center justify-center text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] border border-[var(--border)] bg-[var(--bg-base)] disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer rounded-md transition-colors shadow-sm active:scale-[0.95]"
+              >
+                ←
+              </button>
+              {visiblePages.map(n => (
+                <button
+                  key={n}
+                  onClick={() => setPage(n)}
+                  className={cn(
+                    'h-7 w-7 flex items-center justify-center text-[11px] font-mono rounded-md border transition-all cursor-pointer shadow-sm active:scale-[0.95]',
+                    activePage === n
+                      ? 'bg-[var(--text-primary)] border-[var(--text-primary)] text-[var(--bg-base)] font-bold'
+                      : 'bg-[var(--bg-base)] border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] font-medium',
+                  )}
+                >
+                  {n}
+                </button>
+              ))}
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={activePage === totalPages}
+                className="h-7 w-7 flex items-center justify-center text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] border border-[var(--border)] bg-[var(--bg-base)] disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer rounded-md transition-colors shadow-sm active:scale-[0.95]"
+              >
+                →
+              </button>
+            </div>
+          )}
         </div>
 
-        {results.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-2 text-[var(--text-muted)]">
-            <div className="text-2xl opacity-30">∅</div>
-            <p className="text-xs">No records matched</p>
-          </div>
-        ) : (
-          <>
-            <div className="flex-1 overflow-auto">
-              <table className="w-full text-xs">
-                <thead className="sticky top-0 bg-[var(--bg-secondary)]">
-                  <tr>
-                    {columns.map(col => (
-                      <th
-                        key={col}
-                        onClick={() => handleSort(col)}
-                        className={cn(
-                          'px-3 py-2 text-left font-medium uppercase tracking-wider cursor-pointer',
-                          'text-[var(--text-muted)] hover:text-[var(--text-secondary)]',
-                          'border-b border-[var(--border)] whitespace-nowrap',
-                          'transition-colors duration-150 select-none',
-                        )}
-                      >
-                        <span className="flex items-center gap-1">
-                          {col}
-                          {sortKey === col && (
-                            sortDir === 'asc' ? <ChevronUp size={10} /> : <ChevronDown size={10} />
-                          )}
-                        </span>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {pageRows.map((row, ri) => (
-                    <tr
-                      key={ri}
-                      className={cn(
-                        'border-b border-[var(--border-subtle)]',
-                        'hover:bg-[var(--bg-elevated)]',
-                        'transition-colors duration-100',
-                      )}
-                    >
-                      {columns.map(col => (
-                        <td key={col} className="px-3 py-2 text-[var(--text-secondary)] whitespace-nowrap max-w-[140px] truncate">
-                          {typeof row[col] === 'boolean' ? (
-                            <span className={row[col] ? 'text-[var(--success)]' : 'text-[var(--text-muted)]'}>
-                              {String(row[col])}
-                            </span>
-                          ) : col === 'country' || col === 'status' || col === 'category' || col === 'paymentMethod' ? (
-                            <span className="px-1.5 py-0.5 rounded bg-[var(--bg-elevated)] text-[var(--brand)] font-mono text-[10px]">
-                              {String(row[col])}
-                            </span>
-                          ) : (
-                            String(row[col])
-                          )}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        <div className="flex-1 overflow-auto relative">
+          {!hasRun ? (
+            <div className="flex flex-col items-center justify-center h-full gap-2.5 text-[var(--text-muted)]">
+              <Database size={20} strokeWidth={1.5} className="text-[var(--text-dim)] animate-pulse" />
+              <span className="text-[11px] font-mono uppercase tracking-[0.08em]">Press Run to execute query</span>
             </div>
-
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-1 py-2 border-t border-[var(--border)] flex-shrink-0">
-                <button
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                  className="h-6 w-6 flex items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text-secondary)] disabled:opacity-30 transition-colors"
-                >
-                  ‹
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                  <button
-                    key={p}
-                    onClick={() => setPage(p)}
-                    className={cn(
-                      'h-6 w-6 flex items-center justify-center rounded text-xs font-mono transition-all',
-                      p === page
-                        ? 'bg-[var(--brand)] text-[#080c14] font-semibold'
-                        : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]',
-                    )}
-                  >{p}</button>
-                ))}
-                <button
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                  className="h-6 w-6 flex items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--text-secondary)] disabled:opacity-30 transition-colors"
-                >
-                  ›
-                </button>
-              </div>
-            )}
-          </>
-        )}
+          ) : results.length === 0 || columns.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full gap-2.5 text-[var(--text-muted)]">
+              <Database size={20} strokeWidth={1.5} className="text-[var(--text-dim)]" />
+              <span className="text-[11px] font-mono uppercase tracking-[0.08em]">No records matched</span>
+            </div>
+          ) : (
+            <table className="table-auto border-collapse min-w-full w-max select-text">
+              <thead>
+                <tr className="border-b border-[var(--border)] sticky top-0 bg-[var(--bg-secondary)] z-10">
+                  <th className="pl-4 sm:pl-8 pr-4 py-2.5 text-left w-14 text-[11px] font-mono text-[var(--text-dim)] font-normal uppercase tracking-[0.06em]">
+                    #
+                  </th>
+                  {columns.map((col, i) => (
+                    <th key={col}
+                      onClick={() => handleSort(col)}
+                      className={cn(
+                        "px-4 sm:px-6 py-2.5 text-left cursor-pointer hover:bg-[var(--bg-hover)] transition-colors text-[11px] font-mono text-[var(--text-muted)] font-normal uppercase tracking-[0.06em] whitespace-nowrap select-none",
+                        i === columns.length - 1 && "pr-8 sm:pr-16"
+                      )}
+                      style={{ minWidth: getColWidth(col) }}
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>{col}</span>
+                        {sortKey === col && (
+                          sortDir === 'asc'
+                            ? <ChevronUp size={11} className="text-[var(--brand)]" />
+                            : <ChevronDown size={11} className="text-[var(--brand)]" />
+                        )}
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border-subtle)]">
+                {pageRows.map((row, ri) => {
+                  const idx = (activePage - 1) * PAGE_SIZE + ri + 1
+                  return (
+                    <tr key={ri} className="hover:bg-[var(--bg-hover)] transition-colors duration-75">
+                      <td className="pl-4 sm:pl-8 pr-4 py-2.5 font-mono text-[11px] text-[var(--text-dim)] tabular-nums whitespace-nowrap">
+                        #{String(idx).padStart(3, '0')}
+                      </td>
+                      {columns.map((col, ci) => {
+                        const v = row[col]
+                        const isNum  = typeof v === 'number'
+                        const isBool = typeof v === 'boolean'
+                        return (
+                          <td key={col} 
+                            className={cn("px-4 sm:px-6 py-2.5 font-mono whitespace-nowrap", ci === columns.length - 1 && "pr-8 sm:pr-16")}
+                            style={{ minWidth: getColWidth(col) }}
+                          >
+                            <span className={cn(
+                              'text-[12px]',
+                              isNum  && 'text-[var(--brand)] font-medium',
+                              isBool && (v ? 'text-[var(--success)] font-medium' : 'text-[var(--text-muted)]'),
+                              !isNum && !isBool && 'text-[var(--text-secondary)]',
+                            )}>
+                              {isBool ? (v ? 'true' : 'false') : String(v ?? '—')}
+                            </span>
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
     </div>
   )

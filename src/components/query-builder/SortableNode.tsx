@@ -6,12 +6,7 @@ import { GripVertical } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ReactNode } from 'react'
 
-interface SortableNodeProps {
-  id: string
-  children: ReactNode
-}
-
-export function SortableNode({ id, children }: SortableNodeProps) {
+export function SortableNode({ id, children }: { id: string; children: ReactNode }) {
   const {
     attributes,
     listeners,
@@ -21,38 +16,32 @@ export function SortableNode({ id, children }: SortableNodeProps) {
     isDragging,
   } = useSortable({ id })
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  }
-
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        'flex items-start gap-2 group/sortable',
-        isDragging && 'opacity-50 z-50',
+        'flex items-center gap-2 group/drag',
+        isDragging && 'opacity-40 z-50 shadow-[var(--shadow-md)]',
       )}
     >
-      <button
+      <div
         {...attributes}
         {...listeners}
         className={cn(
-          'flex-shrink-0 mt-[11px]',
-          'h-5 w-4 flex items-center justify-center',
-          'text-[var(--text-muted)] rounded',
-          'opacity-0 group-hover/sortable:opacity-100',
-          'hover:text-[var(--text-secondary)]',
-          'transition-opacity duration-150',
+          'flex-shrink-0 w-5 h-10 flex items-center justify-center',
+          'text-[var(--text-dim)] hover:text-[var(--text-muted)]',
+          'opacity-0 group-hover/drag:opacity-100',
           'cursor-grab active:cursor-grabbing',
+          'transition-opacity duration-150',
+          'touch-none', 
           isDragging && 'opacity-100',
         )}
         aria-label="Drag to reorder"
-        onPointerDown={e => e.stopPropagation()}
       >
         <GripVertical size={13} />
-      </button>
+      </div>
+
       <div className="flex-1 min-w-0">{children}</div>
     </div>
   )

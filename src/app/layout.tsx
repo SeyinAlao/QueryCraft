@@ -5,7 +5,7 @@ import { ThemeProvider } from '@/components/ui/ThemeProvider'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'QueryCraft — Visual Query Builder',
+  title: 'QueryCraft | Visual Query Builder',
   description: 'Build complex database queries visually. No raw syntax required.',
   keywords: ['query builder', 'database', 'visual', 'SQL', 'MongoDB', 'GraphQL'],
 }
