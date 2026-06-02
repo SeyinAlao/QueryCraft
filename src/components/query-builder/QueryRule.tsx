@@ -1,159 +1,121 @@
 'use client'
 
 import { memo, useCallback } from 'react'
-import { GripVertical, X, Hash, Type, Calendar, List, ToggleLeft } from 'lucide-react'
+import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useQueryStore } from '@/store/queryStore'
 import { SCHEMA_MAP } from '@/schemas'
 import { getOperatorsForType, getOperatorOption } from '@/engine/operatorConfig'
 import { RuleValueInput } from './RuleValueInput'
-import type { QueryRule as QueryRuleType } from '@/types/query'
-import type { RuleValue } from '@/types/query'
+import type { QueryRule as QR } from '@/types/query'
 
-interface QueryRuleProps {
-  rule: QueryRuleType
-  isDragging?: boolean
-}
+const MONO: React.CSSProperties = { fontFamily: 'var(--font-mono)' }
 
-const FIELD_TYPE_ICONS = {
-  string:  <Type size={11} />,
-  number:  <Hash size={11} />,
-  date:    <Calendar size={11} />,
-  enum:    <List size={11} />,
-  boolean: <ToggleLeft size={11} />,
-}
+export const QueryRule = memo(function QueryRule({ rule }: { rule: QR }) {
+  const updateRule     = useQueryStore(s => s.updateRule)
+  const removeNode     = useQueryStore(s => s.removeNode)
+  const activeSchemaId = useQueryStore(s => s.activeSchemaId)
 
-export const QueryRule = memo(function QueryRule({ rule, isDragging }: QueryRuleProps) {
-  const updateRule  = useQueryStore(s => s.updateRule)
-  const removeNode  = useQueryStore(s => s.removeNode)
-  const schemaId    = useQueryStore(s => s.activeSchemaId)
+  const schema    = SCHEMA_MAP[activeSchemaId]
+  const fields    = schema?.fields ?? []
+  const field     = fields.find(f => f.key === rule.field)
+  const operators = field ? getOperatorsForType(field.type) : []
+  const opOption  = field ? getOperatorOption(field.type, rule.operator) : undefined
 
-  const schema = SCHEMA_MAP[schemaId]
-  const fields = schema?.fields ?? []
-  const currentField = fields.find(f => f.key === rule.field) ?? fields[0]
-  const operators = currentField ? getOperatorsForType(currentField.type) : []
-  const currentOperator = getOperatorOption(currentField?.type ?? 'string', rule.operator)
-    ?? operators[0]
+  const handleField = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    const nf = schema?.fields.find(f => f.key === e.target.value)
+    if (!nf) return
+    const ops = getOperatorsForType(nf.type)
+    updateRule(rule.id, { field: e.target.value, operator: ops[0]?.value ?? 'equals', value: '' })
+  }, [rule.id, schema, updateRule])
 
-  const handleFieldChange = useCallback((fieldKey: string) => {
-    const newField = fields.find(f => f.key === fieldKey)
-    if (!newField) return
-    const newOperators = getOperatorsForType(newField.type)
-    updateRule(rule.id, {
-      field: fieldKey,
-      operator: newOperators[0]?.value ?? 'equals',
-      value: '',
-    })
-  }, [fields, rule.id, updateRule])
-
-  const handleOperatorChange = useCallback((op: string) => {
-    updateRule(rule.id, {
-      operator: op as QueryRuleType['operator'],
-      value: '', 
-    })
+  const handleOperator = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
+    updateRule(rule.id, { operator: e.target.value as QR['operator'], value: '' })
   }, [rule.id, updateRule])
 
-  const handleValueChange = useCallback((value: RuleValue) => {
-    updateRule(rule.id, { value })
+  const handleValue = useCallback((v: QR['value']) => {
+    updateRule(rule.id, { value: v })
   }, [rule.id, updateRule])
-
-  const handleRemove = useCallback(() => {
-    removeNode(rule.id)
-  }, [rule.id, removeNode])
 
   return (
-    <div
+    <div 
       className={cn(
-        'group flex items-center gap-2 p-2 pr-3',
-        'rounded-[var(--radius-md)]',
-        'bg-[var(--bg-tertiary)]',
-        'border border-[var(--border-subtle)]',
-        'hover:border-[var(--border)]',
-        'transition-all duration-150',
-        'animate-slide-down',
-        isDragging && 'opacity-50 scale-[0.99] shadow-lg',
+        'flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3',
+        'sm:h-10 w-full',
+        'bg-[var(--bg-base)] hover:bg-[var(--bg-hover)]',
+        'border border-[var(--border-subtle)] hover:border-[var(--border)]',
+        'rounded-xl sm:rounded-[var(--radius-md)]',
+        'transition-all duration-150 group relative',
+        'p-3 sm:p-0' 
       )}
+      style={{
+        paddingLeft: typeof window !== 'undefined' && window.innerWidth < 640 ? '12px' : '24px',
+        paddingRight: typeof window !== 'undefined' && window.innerWidth < 640 ? '12px' : '12px',
+        marginRight: typeof window !== 'undefined' && window.innerWidth < 640 ? '0px' : '24px'
+      }}
     >
-      <button
-        className={cn(
-          'flex-shrink-0 h-6 w-5 flex items-center justify-center',
-          'text-[var(--text-muted)] cursor-grab active:cursor-grabbing',
-          'opacity-0 group-hover:opacity-100 transition-opacity duration-150',
-          'rounded hover:text-[var(--text-secondary)]',
-        )}
-        aria-label="Drag to reorder"
-      >
-        <GripVertical size={13} />
-      </button>
-      <div className="relative flex-shrink-0">
-        <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none z-10">
-          {currentField && FIELD_TYPE_ICONS[currentField.type]}
-        </span>
-        <select
-          value={rule.field}
-          onChange={e => handleFieldChange(e.target.value)}
-          className={cn(
-            'h-8 pl-7 pr-6 text-sm w-36',
-            'bg-[var(--bg-secondary)] text-[var(--text-primary)]',
-            'border border-[var(--border)]',
-            'rounded-[var(--radius-sm)]',
-            'focus:outline-none focus:border-[var(--brand)]',
-            'cursor-pointer transition-all duration-150',
-            'appearance-none',
-          )}
+      <div className="flex items-center justify-between sm:justify-start gap-1 sm:gap-2 min-w-0 w-full sm:w-auto">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <select
+            value={rule.field}
+            onChange={handleField}
+            style={{ ...MONO, background: 'transparent' }}
+            className="appearance-none border-none outline-none cursor-pointer text-[12px] font-medium text-[var(--brand)] w-24 sm:w-[130px] flex-shrink-0"
+            aria-label="Field"
+          >
+            {fields.map(f => (
+              <option key={f.key} value={f.key}
+                style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+
+          <span style={MONO} className="text-[var(--border-strong)] flex-shrink-0 mx-0.5">·</span>
+
+          <select
+            value={rule.operator}
+            onChange={handleOperator}
+            style={{ ...MONO, background: 'transparent' }}
+            className="appearance-none border-none outline-none cursor-pointer text-[11px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] w-24 sm:w-[120px] flex-shrink-0 transition-colors"
+            aria-label="Operator"
+          >
+            {operators.map(op => (
+              <option key={op.value} value={op.value}
+                style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                {op.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => removeNode(rule.id)}
+          className="flex sm:hidden h-7 w-7 items-center justify-center text-[var(--text-dim)] active:text-[var(--danger)] bg-[var(--bg-elevated)] border border-[var(--border)] rounded-md"
+          aria-label="Remove Rule"
         >
-          {fields.map(f => (
-            <option key={f.key} value={f.key}>{f.label}</option>
-          ))}
-        </select>
-        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none text-[10px]">▾</span>
+          <X size={13} />
+        </button>
       </div>
 
-      <div className="relative flex-shrink-0">
-        <select
-          value={rule.operator}
-          onChange={e => handleOperatorChange(e.target.value)}
-          className={cn(
-            'h-8 px-3 pr-7 text-sm w-40',
-            'bg-[var(--bg-secondary)] text-[var(--logic-or)]',
-            'border border-[var(--border)]',
-            'rounded-[var(--radius-sm)]',
-            'focus:outline-none focus:border-[var(--brand)]',
-            'cursor-pointer transition-all duration-150',
-            'appearance-none font-mono text-xs',
-          )}
-        >
-          {operators.map(o => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none text-[10px]">▾</span>
-      </div>
+      <span style={MONO} className="text-[var(--border-strong)] flex-shrink-0 hidden sm:inline">·</span>
 
-      <div className="flex-1 min-w-0">
-        {currentField && currentOperator && (
-          <RuleValueInput
-            field={currentField}
-            operatorOption={currentOperator}
-            value={rule.value}
-            onChange={handleValueChange}
-          />
+      <div className="flex-1 w-full min-w-0">
+        {field && opOption ? (
+          <RuleValueInput field={field} operatorOption={opOption} value={rule.value} onChange={handleValue} />
+        ) : (
+          <span style={MONO} className="text-[11px] text-[var(--text-dim)] flex items-center h-8">select a field</span>
         )}
       </div>
 
       <button
-        onClick={handleRemove}
-        className={cn(
-          'flex-shrink-0 h-6 w-6 flex items-center justify-center',
-          'rounded-[var(--radius-sm)]',
-          'text-[var(--text-muted)]',
-          'hover:text-[var(--danger)] hover:bg-[var(--danger-bg)]',
-          'opacity-0 group-hover:opacity-100',
-          'transition-all duration-150',
-        )}
-        aria-label="Remove condition"
+        type="button"
+        onClick={() => removeNode(rule.id)}
+        className="hidden sm:flex flex-shrink-0 h-6 w-6 items-center justify-center text-[var(--text-dim)] hover:text-[var(--danger)] opacity-0 group-hover:opacity-100 transition-all duration-150 rounded cursor-pointer"
+        aria-label="Remove"
       >
-        <X size={13} />
+        <X size={12} />
       </button>
     </div>
   )
