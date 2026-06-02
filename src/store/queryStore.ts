@@ -19,7 +19,6 @@ interface QueryStore {
   selectedNodeId: string | null
 
   setExecutedRoot: () => void
-
   setActiveSchema: (schemaId: string) => void
 
   addRule: (groupId: string) => void
@@ -116,6 +115,14 @@ export function findParentGroup(
   }
 
   return undefined
+}
+
+export function isDescendant(parent: QueryNode, childId: string): boolean {
+  if (parent.id === childId) return true
+  if (parent.type === 'group') {
+    return parent.children.some(child => isDescendant(child, childId))
+  }
+  return false
 }
 
 function removeNodeFromTree(root: QueryGroup, nodeId: string): QueryGroup {
@@ -220,11 +227,17 @@ export const useQueryStore = create<QueryStore>()(
           if (nodeId === get().root.id) return
 
           set(
-            state => ({
-              root: removeNodeFromTree(state.root, nodeId),
-              selectedNodeId:
-                state.selectedNodeId === nodeId ? null : state.selectedNodeId,
-            }),
+            state => {
+              const deletedNode = findNode(state.root, nodeId)
+              const isSelectedTrapped = state.selectedNodeId && deletedNode 
+                ? isDescendant(deletedNode, state.selectedNodeId) 
+                : false
+
+              return {
+                root: removeNodeFromTree(state.root, nodeId),
+                selectedNodeId: isSelectedTrapped ? null : state.selectedNodeId,
+              }
+            },
             false,
             'removeNode'
           )
@@ -279,11 +292,16 @@ export const useQueryStore = create<QueryStore>()(
           const { root } = get()
           const nodeToMove = findNode(root, nodeId)
           if (!nodeToMove) return
+
+          if (isDescendant(nodeToMove, targetGroupId)) return
+          const detachedNode = JSON.parse(JSON.stringify(nodeToMove))
+
           const rootWithoutNode = removeNodeFromTree(root, nodeId)
+          
           const newRoot = mapTree(rootWithoutNode, node => {
             if (node.id === targetGroupId && node.type === 'group') {
               const children = [...node.children]
-              children.splice(newIndex, 0, nodeToMove)
+              children.splice(newIndex, 0, detachedNode)
               return { ...node, children }
             }
             return node
@@ -291,6 +309,7 @@ export const useQueryStore = create<QueryStore>()(
 
           set({ root: newRoot }, false, 'moveNode')
         },
+        
         setSelectedNode: (nodeId) => {
           set({ selectedNodeId: nodeId }, false, 'setSelectedNode')
         },

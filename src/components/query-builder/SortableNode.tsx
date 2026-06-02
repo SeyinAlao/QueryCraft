@@ -16,13 +16,18 @@ export function SortableNode({ id, children }: { id: string; children: ReactNode
     isDragging,
   } = useSortable({ id })
 
+  const style = {
+    transform: transform ? CSS.Translate.toString(transform) : undefined,
+    transition,
+  }
+
   return (
     <div
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
+      style={style}
       className={cn(
-        'flex items-center gap-2 group/drag',
-        isDragging && 'opacity-40 z-50 shadow-[var(--shadow-md)]',
+        'flex items-center gap-2 group/drag relative',
+        isDragging && 'opacity-40 z-50 shadow-[var(--shadow-md)] pointer-events-none',
       )}
     >
       <div
