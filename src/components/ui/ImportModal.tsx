@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { X, Upload, FileJson, AlertCircle, CheckCircle, FileUp } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import { useQueryStore } from '@/store/queryStore'
 
 interface ImportModalProps {
