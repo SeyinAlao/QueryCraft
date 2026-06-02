@@ -24,34 +24,43 @@ QueryCraft is a production-grade visual query builder. Users construct complex, 
 ## Architecture
 
 ### Folder Structure
+
+```text
 src/
-├── app/                    # Next.js 14 App Router
+├── app/                              # Next.js 14 App Router
 ├── components/
-│   ├── query-builder/      # Core recursive UI components
-│   │   ├── ConditionGroup.tsx   # Recursive group renderer
-│   │   ├── QueryRule.tsx        # Individual condition row
-│   │   ├── RuleValueInput.tsx   # Schema-aware value inputs
-│   │   ├── SortableNode.tsx     # DnD Kit drag wrapper
-│   │   ├── AnimatedRule.tsx     # Framer Motion rule animations
-│   │   └── AnimatedGroup.tsx    # Framer Motion group animations
+│   ├── query-builder/                # Core recursive UI components
+│   │   ├── ConditionGroup.tsx        # Recursive group renderer
+│   │   ├── QueryRule.tsx             # Individual condition row
+│   │   ├── RuleValueInput.tsx        # Schema-aware value inputs
+│   │   ├── SortableNode.tsx          # DnD Kit drag wrapper
+│   │   ├── AnimatedRule.tsx          # Framer Motion rule animations
+│   │   └── AnimatedGroup.tsx         # Framer Motion group animations
+│   │
 │   ├── preview/
-│   │   └── PreviewPanel.tsx     # Live SQL/MongoDB/GraphQL preview + results
-│   └── ui/                 # Shared design system components
+│   │   └── PreviewPanel.tsx          # Live SQL/MongoDB/GraphQL preview + results
+│   │
+│   └── ui/                           # Shared design system components
+│
 ├── store/
-│   └── queryStore.ts       # Zustand recursive tree store
+│   └── queryStore.ts                 # Zustand recursive tree store
+│
 ├── engine/
-│   ├── queryGenerator.ts   # Tree → SQL / MongoDB / GraphQL
-│   ├── queryExecutor.ts    # Filters mock dataset against tree
-│   └── queryValidator.ts   # Type-aware operator validation
+│   ├── queryGenerator.ts             # Tree → SQL / MongoDB / GraphQL
+│   ├── queryExecutor.ts              # Filters mock dataset against tree
+│   └── queryValidator.ts             # Type-aware operator validation
+│
 ├── schemas/
-│   └── index.ts            # Users, Orders, Products schema definitions
+│   └── index.ts                      # Users, Orders, Products schema definitions
+│
 ├── types/
-│   └── query.ts            # All TypeScript types
+│   └── query.ts                      # All TypeScript types
+│
 ├── hooks/
 │   └── useKeyboardShortcuts.ts
-└── tests/              # Vitest test suite (98 tests)
-
----
+│
+└── tests/                            # Vitest test suite (98 tests)
+```
 
 ## Recursive Rendering Strategy
 
