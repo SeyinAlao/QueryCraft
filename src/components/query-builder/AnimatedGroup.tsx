@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import type { ReactNode } from 'react'
 
 interface AnimatedGroupChildrenProps {
@@ -13,22 +13,29 @@ export function AnimatedGroupChildren({
   children,
 }: AnimatedGroupChildrenProps) {
   return (
-    <AnimatePresence initial={false}>
-      {isVisible && (
-        <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: 'auto', opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          transition={{
-            height: { duration: 0.25, ease: [0.4, 0, 0.2, 1] },
-            opacity: { duration: 0.15, ease: 'easeOut' },
-          }}
-          style={{ overflow: 'hidden' }}
-        >
-          {children}
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <motion.div
+      initial={false}
+      animate={
+        isVisible
+          ? {
+              height: 'auto',
+              opacity: 1,
+              visibility: 'visible',
+            }
+          : {
+              height: 0,
+              opacity: 0,
+              transitionEnd: { visibility: 'hidden' }, 
+            }
+      }
+      transition={{
+        height: { duration: 0.25, ease: [0.4, 0, 0.2, 1] },
+        opacity: { duration: 0.15, ease: 'easeOut' },
+      }}
+      style={{ overflow: 'hidden' }}
+    >
+      {children}
+    </motion.div>
   )
 }
 

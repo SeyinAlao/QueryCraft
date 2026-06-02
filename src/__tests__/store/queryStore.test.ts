@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useQueryStore, findNode, findParentGroup, countNodes } from '@/store/queryStore'
+
 beforeEach(() => {
   useQueryStore.getState().resetQuery()
 })
@@ -12,10 +13,9 @@ describe('initial state', () => {
     expect(root.collapsed).toBe(false)
   })
 
-  it('root group starts with two rules', () => {
+  it('root group starts completely empty', () => {
     const { root } = useQueryStore.getState()
-    expect(root.children).toHaveLength(2)
-    expect(root.children.every(c => c.type === 'rule')).toBe(true)
+    expect(root.children).toHaveLength(0)
   })
 
   it('defaults to users schema', () => {
@@ -30,8 +30,8 @@ describe('addRule', () => {
     addRule(root.id)
 
     const newRoot = useQueryStore.getState().root
-    expect(newRoot.children).toHaveLength(3)
-    expect(newRoot.children[2].type).toBe('rule')
+    expect(newRoot.children).toHaveLength(1)
+    expect(newRoot.children[0].type).toBe('rule')
   })
 
   it('adds a rule to a nested group', () => {
@@ -78,12 +78,14 @@ describe('addGroup', () => {
 
 describe('removeNode', () => {
   it('removes a rule from the tree', () => {
-    const { root, removeNode } = useQueryStore.getState()
-    const ruleId = root.children[0].id
+    const { root, addRule, removeNode } = useQueryStore.getState()
+    addRule(root.id)
+
+    const ruleId = useQueryStore.getState().root.children[0].id
     removeNode(ruleId)
 
     const newRoot = useQueryStore.getState().root
-    expect(newRoot.children).toHaveLength(1)
+    expect(newRoot.children).toHaveLength(0)
     expect(findNode(newRoot, ruleId)).toBeUndefined()
   })
 
@@ -111,8 +113,10 @@ describe('removeNode', () => {
 
 describe('updateRule', () => {
   it('updates a rule field', () => {
-    const { root, updateRule } = useQueryStore.getState()
-    const rule = root.children[0]
+    const { root, addRule, updateRule } = useQueryStore.getState()
+    addRule(root.id) 
+
+    const rule = useQueryStore.getState().root.children[0]
     updateRule(rule.id, { field: 'email', operator: 'contains', value: '@gmail' })
 
     const updated = findNode(useQueryStore.getState().root, rule.id)
@@ -181,25 +185,26 @@ describe('exportQuery / importQuery', () => {
 
 describe('tree utility functions', () => {
   it('findNode finds a node at any depth', () => {
-    const { root, addGroup } = useQueryStore.getState()
-    addGroup(root.id)
+    const { root, addRule } = useQueryStore.getState()
+    addRule(root.id)
 
-    const ruleId = root.children[0].id
+    const ruleId = useQueryStore.getState().root.children[0].id
     const found = findNode(useQueryStore.getState().root, ruleId)
     expect(found?.id).toBe(ruleId)
   })
 
   it('findParentGroup finds the parent of a rule', () => {
-    const { root } = useQueryStore.getState()
-    const ruleId = root.children[0].id
-    const parent = findParentGroup(root, ruleId)
+    const { root, addRule } = useQueryStore.getState()
+    addRule(root.id)
+
+    const ruleId = useQueryStore.getState().root.children[0].id
+    const parent = findParentGroup(useQueryStore.getState().root, ruleId)
     expect(parent?.id).toBe(root.id)
   })
 
   it('countNodes counts all nodes correctly', () => {
     const { root } = useQueryStore.getState()
-    // root (1) + 2 rules (2) = 3
-    expect(countNodes(root)).toBe(3)
+    expect(countNodes(root)).toBe(1)
   })
 })
 
@@ -210,6 +215,6 @@ describe('setActiveSchema', () => {
 
     const state = useQueryStore.getState()
     expect(state.activeSchemaId).toBe('orders')
-    expect(state.root.children).toHaveLength(2)
+    expect(state.root.children).toHaveLength(0)
   })
 })
