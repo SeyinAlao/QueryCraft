@@ -11,7 +11,7 @@ cat > README.md << 'ENDREADME'
 
 **[querycraft.vercel.app](https://query-craft-zeta.vercel.app/)** — deployed on Vercel, auto-deploys on every PR merge
 
-📹 **Demo Video**: [Watch 5-minute walkthrough](#) 
+📹 **Demo Video**: [Watch 5-minute walkthrough](https://drive.google.com/file/d/1dTBKrxp0doqIRUOHDBbsoM3nKK1DYfWW/view?usp=sharing) 
 
 ---
 
