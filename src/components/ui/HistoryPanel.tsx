@@ -3,9 +3,9 @@
 import { useCallback } from 'react'
 import { X, Clock, RotateCcw, Inbox } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useQueryStore } from '@/store/queryStore'
-import { countNodes } from '@/store/queryStore'
+import { useQueryStore, countNodes } from '@/store/queryStore'
 import { SCHEMA_MAP } from '@/schemas'
+import { Badge } from './Badge'
 import type { QuerySnapshot } from '@/types/query'
 
 interface HistoryPanelProps {
@@ -53,7 +53,10 @@ export function HistoryPanel({ isOpen, onClose }: HistoryPanelProps) {
           isOpen ? 'translate-x-0' : 'translate-x-full',
         )}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] flex-shrink-0">
+        <div 
+          className="flex items-center justify-between border-b border-[var(--border)] flex-shrink-0"
+          style={{ padding: '16px 20px' }}
+        >
           <div className="flex items-center gap-2">
             <Clock size={14} className="text-[var(--brand)]" />
             <span className="text-sm font-semibold text-[var(--text-primary)]">
@@ -68,7 +71,10 @@ export function HistoryPanel({ isOpen, onClose }: HistoryPanelProps) {
           </button>
         </div>
 
-        <p className="px-4 py-2 text-xs text-[var(--text-muted)] border-b border-[var(--border-subtle)] flex-shrink-0">
+        <p 
+          className="text-xs text-[var(--text-muted)] border-b border-[var(--border-subtle)] flex-shrink-0"
+          style={{ padding: '12px 20px' }}
+        >
           Last {history.length} queries. Click any to restore.
         </p>
 
@@ -81,66 +87,55 @@ export function HistoryPanel({ isOpen, onClose }: HistoryPanelProps) {
               </p>
             </div>
           ) : (
-            <ul className="p-2 flex flex-col gap-1">
+            <ul style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {history.map((snapshot, index) => {
                 const schema = SCHEMA_MAP[snapshot.schemaId]
                 const nodeCount = countNodes(snapshot.root) - 1 
+                const isAnd = snapshot.root.logic === 'AND'
+
                 return (
                   <li key={snapshot.id}>
                     <button
                       onClick={() => handleLoad(snapshot)}
                       className={cn(
-                        'w-full text-left p-3 rounded-[var(--radius-md)]',
-                        'border border-transparent',
-                        'hover:bg-[var(--bg-elevated)] hover:border-[var(--border)]',
-                        'transition-all duration-150 group',
-                        index === 0 && 'border-[var(--border)] bg-[var(--bg-elevated)]',
+                        'w-full text-left transition-all duration-150 group',
+                        index === 0 ? 'bg-[var(--bg-elevated)] border-[var(--border)]' : 'border-transparent hover:bg-[var(--bg-elevated)] hover:border-[var(--border)]'
                       )}
+                      style={{ 
+                        padding: '16px', 
+                        borderRadius: '8px',
+                        borderWidth: '1px',
+                        borderStyle: 'solid'
+                      }}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex flex-col gap-1 min-w-0">
-                          <span className="text-xs font-medium text-[var(--text-primary)] truncate">
+                        <div className="flex flex-col gap-2 min-w-0">
+                          <span className="text-sm font-medium text-[var(--text-primary)] truncate">
                             {snapshot.name}
                           </span>
                           <div className="flex items-center gap-2">
-                            <span
-                              className="text-[10px] px-1.5 py-0.5 rounded font-mono"
-                              style={{
-                                backgroundColor: 'var(--brand-subtle)',
-                                color: 'var(--brand)',
-                              }}
-                            >
+                            <Badge variant="brand" className="text-[10px] px-1.5 py-0">
                               {schema?.name ?? snapshot.schemaId}
-                            </span>
-                            <span
-                              className="text-[10px] px-1.5 py-0.5 rounded font-mono"
-                              style={{
-                                backgroundColor: snapshot.root.logic === 'AND'
-                                  ? 'var(--logic-and-bg)'
-                                  : 'var(--logic-or-bg)',
-                                color: snapshot.root.logic === 'AND'
-                                  ? 'var(--logic-and)'
-                                  : 'var(--logic-or)',
-                              }}
-                            >
+                            </Badge>
+                            <Badge variant={isAnd ? 'and' : 'or'} className="text-[10px] px-1.5 py-0">
                               {snapshot.root.logic}
-                            </span>
-                            <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                            </Badge>
+                            <span className="text-[11px] text-[var(--text-muted)] font-mono ml-1">
                               {nodeCount} rule{nodeCount !== 1 ? 's' : ''}
                             </span>
                           </div>
                         </div>
 
-                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                          <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                          <span className="text-[11px] text-[var(--text-muted)] font-mono">
                             {formatTime(snapshot.createdAt)}
                           </span>
                           <span className="text-[10px] text-[var(--text-muted)]">
                             {formatDate(snapshot.createdAt)}
                           </span>
                           <RotateCcw
-                            size={10}
-                            className="text-[var(--brand)] opacity-0 group-hover:opacity-100 transition-opacity"
+                            size={12}
+                            className="text-[var(--brand)] opacity-0 group-hover:opacity-100 transition-opacity mt-1"
                           />
                         </div>
                       </div>
