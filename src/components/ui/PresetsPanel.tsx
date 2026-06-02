@@ -58,7 +58,10 @@ export function PresetsPanel({ isOpen, onClose }: PresetsPanelProps) {
           isOpen ? 'translate-x-0' : 'translate-x-full',
         )}
       >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)] flex-shrink-0">
+        <div 
+          className="flex items-center justify-between border-b border-[var(--border)] flex-shrink-0"
+          style={{ padding: '16px 20px' }}
+        >
           <div className="flex items-center gap-2">
             <Bookmark size={14} className="text-[var(--brand)]" />
             <span className="text-sm font-semibold text-[var(--text-primary)]">
@@ -77,7 +80,11 @@ export function PresetsPanel({ isOpen, onClose }: PresetsPanelProps) {
             <X size={14} />
           </button>
         </div>
-        <div className="p-3 border-b border-[var(--border)] flex-shrink-0">
+        
+        <div 
+          className="border-b border-[var(--border)] flex-shrink-0"
+          style={{ padding: '12px 20px' }}
+        >
           {isSaving ? (
             <div className="flex flex-col gap-2 animate-slide-down">
               <input
@@ -161,7 +168,7 @@ export function PresetsPanel({ isOpen, onClose }: PresetsPanelProps) {
               </p>
             </div>
           ) : (
-            <ul className="p-2 flex flex-col gap-1">
+            <ul style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {presets.map(preset => {
                 const schema = SCHEMA_MAP[preset.schemaId]
                 const nodeCount = countNodes(preset.root) - 1
@@ -169,33 +176,36 @@ export function PresetsPanel({ isOpen, onClose }: PresetsPanelProps) {
                   <li key={preset.id}>
                     <div
                       className={cn(
-                        'p-3 rounded-[var(--radius-md)]',
                         'border border-[var(--border)]',
                         'bg-[var(--bg-elevated)]',
                         'group',
                       )}
+                      style={{ 
+                        padding: '16px', 
+                        borderRadius: '8px' 
+                      }}
                     >
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="min-w-0">
-                          <p className="text-xs font-medium text-[var(--text-primary)] truncate">
+                          <p className="text-sm font-medium text-[var(--text-primary)] truncate">
                             {preset.name}
                           </p>
                           {preset.description && (
-                            <p className="text-[10px] text-[var(--text-muted)] mt-0.5 truncate">
+                            <p className="text-xs text-[var(--text-muted)] mt-1 truncate">
                               {preset.description}
                             </p>
                           )}
                         </div>
                         <button
                           onClick={() => deletePreset(preset.id)}
-                          className="flex-shrink-0 h-5 w-5 flex items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--danger)] opacity-0 group-hover:opacity-100 transition-all"
+                          className="flex-shrink-0 h-6 w-6 flex items-center justify-center rounded text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--bg-secondary)] opacity-0 group-hover:opacity-100 transition-all"
                           aria-label="Delete preset"
                         >
-                          <Trash2 size={11} />
+                          <Trash2 size={14} />
                         </button>
                       </div>
 
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 mb-3">
                         <span
                           className="text-[10px] px-1.5 py-0.5 rounded font-mono"
                           style={{
@@ -205,7 +215,7 @@ export function PresetsPanel({ isOpen, onClose }: PresetsPanelProps) {
                         >
                           {schema?.name ?? preset.schemaId}
                         </span>
-                        <span className="text-[10px] text-[var(--text-muted)] font-mono">
+                        <span className="text-[11px] text-[var(--text-muted)] font-mono">
                           {nodeCount} rule{nodeCount !== 1 ? 's' : ''}
                         </span>
                         <span
@@ -226,7 +236,7 @@ export function PresetsPanel({ isOpen, onClose }: PresetsPanelProps) {
                       <button
                         onClick={() => handleLoad(preset)}
                         className={cn(
-                          'w-full h-6 text-[10px] font-medium',
+                          'w-full h-8 text-xs font-medium',
                           'rounded-[var(--radius-sm)]',
                           'bg-[var(--brand-subtle)] text-[var(--brand)]',
                           'hover:bg-[var(--brand)] hover:text-[var(--bg-base)]',
