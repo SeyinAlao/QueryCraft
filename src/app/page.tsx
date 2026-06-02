@@ -14,10 +14,13 @@ type Panel = 'history' | 'presets' | 'import' | null
 
 export default function Home() {
   const [activePanel, setPanel] = useState<Panel>(null)
+  const [hasRun, setHasRun] = useState(false)
   const exportQuery = useQueryStore(s => s.exportQuery)
-
   const openPanel  = useCallback((p: Panel) => setPanel(p), [])
   const closePanel = useCallback(() => setPanel(null), [])
+  const handleRun = useCallback(() => {
+    setHasRun(true)
+  }, [])
 
   const handleExport = useCallback(() => {
     const json = exportQuery()
@@ -47,13 +50,16 @@ export default function Home() {
         onExport={handleExport}
       />
 
-      <main className="flex flex-1 overflow-hidden">
-        <div className="w-[58%] flex flex-col border-r border-[var(--border)] overflow-hidden">
-          <QueryBuilderPanel />
+      <main className="flex flex-col lg:flex-row flex-1 overflow-hidden">
+        
+        <div className="flex-1 lg:flex-none lg:w-[58%] flex flex-col border-b lg:border-b-0 lg:border-r border-[var(--border)] overflow-hidden">
+          <QueryBuilderPanel onRunQuery={handleRun} />
         </div>
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <PreviewPanel />
+
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          <PreviewPanel hasRun={hasRun} />
         </div>
+
       </main>
 
       <HistoryPanel isOpen={activePanel === 'history'} onClose={closePanel} />

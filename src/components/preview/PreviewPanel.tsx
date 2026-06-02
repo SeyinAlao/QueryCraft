@@ -10,7 +10,13 @@ import type { QueryFormat } from '@/types/query'
 
 type SortDir = 'asc' | 'desc'
 
-export function PreviewPanel() {
+// ADDED: Define the expected props to satisfy TypeScript
+interface PreviewPanelProps {
+  hasRun: boolean
+}
+
+// UPDATED: Accept the hasRun prop in the component signature
+export function PreviewPanel({ hasRun }: PreviewPanelProps) {
   const root          = useQueryStore(s => s.root)
   const schemaId      = useQueryStore(s => s.activeSchemaId)
   const [format, setFormat] = useState<QueryFormat>('sql')
@@ -28,7 +34,7 @@ export function PreviewPanel() {
     }
   }, [root, schemaId, format])
 
-  const results = useMemo(() => executeQuery(root, schemaId), [root, schemaId])
+  const results = useMemo(() => executeQuery(root, schemaId), [root, schemaId, hasRun])
 
   const sorted = useMemo(() => {
     if (!sortKey) return results
